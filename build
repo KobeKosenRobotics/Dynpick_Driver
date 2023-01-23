@@ -1,0 +1,11 @@
+#!/bin/bash
+
+cd lib
+rm -rf build
+mkdir -p build
+
+cd build
+cmake ..
+make
+
+echo "succesfull"

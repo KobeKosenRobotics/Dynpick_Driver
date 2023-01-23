@@ -1,0 +1,11 @@
+#!/bin/bash
+
+rm -rf build
+mkdir -p build
+
+cd build
+cmake ..
+make
+
+echo "succesfull"
+echo "execute command -> ./build/dynpick_driver_ex"
