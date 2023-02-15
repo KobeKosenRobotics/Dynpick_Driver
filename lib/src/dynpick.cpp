@@ -69,7 +69,7 @@ bool DynPick::clearSocket(const int& _fdc, char* leftover)
     if (c > 0) {
       len += c;
       if(!gmoredata){
-        printf("= dynpick: More data to clean up; n = %d (%d) ===", c, len);
+        printf("= dynpick: More data to clean up; n = %d (%d) ===\n", c, len);
         gmoredata = true;
       }
     } else {
@@ -94,7 +94,7 @@ bool DynPick::readCharFromSocket(const int& _fdc, const int& length, char* reply
       len += c;
     } else {
       if(!gneedmore){
-        printf("=== need to read more data ... n = %d (%d) ===", c, len);
+        printf("=== need to read more data ... n = %d (%d) ===\n", c, len);
         gneedmore = true;
       }
       continue;
@@ -121,12 +121,13 @@ bool DynPick::DynPick::set(const char* port)
   clearSocket(fdc, trash);
 
   // Autoadjust
+  // Main axis sensitivity
   if (auto_adjust){
     write(fdc, "p", 1);
     char reply[CALIB_DATA_LENGTH];
     readCharFromSocket(fdc, CALIB_DATA_LENGTH, reply);
     sscanf(reply,"%f,%f,%f,%f,%f,%f", &calib[0], &calib[1], &calib[2], &calib[3], &calib[4], &calib[5]);
-    printf("Calibration from sensor:\n%.3f LSB/N, %.3f LSB/N, %.3f LSB/N, %.3f LSB/Nm, %.3f LSB/Nm, %.3f LSB/Nm", calib[0], calib[1], calib[2], calib[3], calib[4], calib[5]);
+    printf("Calibration from sensor:\n%.3f LSB/N, %.3f LSB/N, %.3f LSB/N, %.3f LSB/Nm, %.3f LSB/Nm, %.3f LSB/Nm\n", calib[0], calib[1], calib[2], calib[3], calib[4], calib[5]);
     clearSocket(fdc, trash);
   }
     
@@ -136,7 +137,7 @@ bool DynPick::DynPick::set(const char* port)
     sprintf(cmd, "%d", frq_div);
     // sprintf(cmd, "%F", frq_div);    
     write(fdc, cmd, 2);
-    printf("Set the frequency divider to %s", cmd);
+    printf("Set the frequency divider to %s\n", cmd);
 
     // check if successful
     write(fdc, "0F", 2);
@@ -145,17 +146,20 @@ bool DynPick::DynPick::set(const char* port)
     //printf(repl[0]-'0' != frq_div, "Response by sensor is not as expected! Current Filter: %dF", repl[0]-'0');
     clearSocket(fdc, trash);
   } else {
-    printf("Not setting frequency divider. Parameter out of acceptable values {1,2,4,8}: %d", frq_div);
+    printf("Not setting frequency divider. Parameter out of acceptable values {1,2,4,8}: %d\n", frq_div);
   }
 
   return 0;
 }
 
-void DynPick::offset(float _FZ, float _MX, float _MY)
+void DynPick::offset(float _FX, float _FY, float _FZ, float _MX, float _MY, float _MZ)
 {
-    offsets[0] = _FZ;
-    offsets[1] = _MX;
-    offsets[2] = _MY;
+    offsets[0] = _FX;
+    offsets[1] = _FY;
+    offsets[2] = _FZ;
+    offsets[3] = _MX;
+    offsets[4] = _MY;
+    offsets[5] = _MZ;
 }
 
 void DynPick::auto_offset(int ave_count)
@@ -173,14 +177,19 @@ void DynPick::auto_offset(int ave_count)
 
         sscanf(str, "%1d%4hx%4hx%4hx%4hx%4hx%4hx", &tick, &data[0], &data[1], &data[2], &data[3], &data[4], &data[5]);
 
-        offsets[0] += -(data[2]-8192)/calib[2];
-        offsets[1] += -(data[3]-8192)/calib[3];
-        offsets[2] += -(data[4]-8192)/calib[4];
+        // transform N or N/m
+        for(int i = 0; i < 6; i++)
+        {
+          offsets[i] += -(data[i]-8192)/calib[i];
+        }
         usleep(10000);
     }
-    for(int i=0; i<3; i++) offsets[i] /= ave_count;
+    for(int i=0; i<6; i++) offsets[i] /= ave_count;
 }
 
+/*
+ * old version
+ */
 vector<float> DynPick::read_3axis()
 {
     char str[256];
@@ -200,5 +209,35 @@ vector<float> DynPick::read_3axis()
     wrench[1] = ((data[3]-8192)/calib[3]) + offsets[1]; // torque_x
     wrench[2] = ((data[4]-8192)/calib[4]) + offsets[2]; // torque_y
     
+    return wrench;
+}
+
+/*
+ * Read Force & Moment
+ *
+ * output : Fx[N], Fy[N], Fz[N], Mx[Nm], My[Nm], Mz[Nm]
+ *
+ */
+vector<float> DynPick::read_axis()
+{
+    char str[256];
+    int tick;
+    unsigned short data[6];
+    vector<float> wrench(6, 0);
+    
+    // Request for initial data (2nd round)
+    write(fdc, "R", 1);
+
+    // Obtain single data
+    readCharFromSocket(fdc, DATA_LENGTH, str);
+
+    sscanf(str, "%1d%4hx%4hx%4hx%4hx%4hx%4hx", &tick, &data[0], &data[1], &data[2], &data[3], &data[4], &data[5]);
+	  
+    // transform N or Nm
+    for(int i = 0; i < 6; i++)
+    {
+      wrench.at(i) = ((data[i]-8192)/calib[i]) + offsets[i];
+    }
+
     return wrench;
 }

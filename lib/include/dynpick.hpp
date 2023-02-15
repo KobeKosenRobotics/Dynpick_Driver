@@ -15,7 +15,7 @@ using namespace std;
 #define RESET_COMMAND_TRY   3       // It only works when send several times.
 
 #define DATA_LENGTH 27
-#define CALIB_DATA_LENGTH 38
+#define CALIB_DATA_LENGTH 45
 
 
 class DynPick
@@ -31,7 +31,7 @@ class DynPick
 
         float calib[6] = {1, 1, 1, 1, 1, 1};
 
-        float offsets[3] = {0.0, 0.0, 0.0};
+        float offsets[6] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
 
         float force_z, torque_x, torque_y;
 
@@ -47,11 +47,13 @@ class DynPick
 
         bool set(const char* port);
 
-        void offset(float _FZ, float _MX, float _MY);
+        void offset(float _FX, float _FY, float _FZ, float _MX, float _MY, float _MZ);
 
         void auto_offset(int ave_count=100);
 
         vector<float> read_3axis();
+
+        vector<float> read_axis();
 };
 
 #endif
