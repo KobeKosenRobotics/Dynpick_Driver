@@ -50,7 +50,7 @@ int main(int argc, char **argv)
     {
 	    wrench = dynpick.read_axis(); // [FX, FY, FZ, MX, MY, MZ]
 	    times = static_cast<double>(clock()) / CLOCKS_PER_SEC * 10000.0;
-	    printf("Fx:% 3.3lf[N] Fy:% 3.3lf[N] Fz:% 3.3lf[N] Mx:% 2.3lf[Nm] My:% 2.3lf[Nm] Mz:% 2.3lf[Nm] time:%.1lf[s]\n", wrench[0], wrench[1], wrench[2], wrench[3], wrench[4], wrench[5], (times-start)/1000);  
+	    printf("Fx:% 3.3lf[N] Fy:% 3.3lf[N] Fz:% 3.3lf[N] Mx:% 2.3lf[Nm] My:% 2.3lf[Nm] Mz:% 2.3lf[Nm] time:%.1lf[s]\n", wrench[0], wrench[1], wrench[2], wrench[3], wrench[4], wrench[5], (times-start)/10000);  
     	usleep(1000); // sleep: 100ms
     }while(wrench[2] > -limit_wrench);
 
